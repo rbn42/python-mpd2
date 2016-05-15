@@ -75,6 +75,9 @@ class MPDError(Exception):
 class ReadFail(MPDError):
     pass
 
+class WriteFail(MPDError):
+    pass
+
 class ConnectionError(MPDError):
     pass
 
@@ -273,14 +276,15 @@ class MPDClient(object):
 
     def _write_line(self, line):
         line=encode_str(line)+b'\n'
-        try:
-            self._wfile.write(line)
-            self._wfile.flush()
-        except:
-            f=open('/dev/shm/1','wb')
-            f.write(line)
-            f.close()
-            assert line.strip() in b'status',b'stats'
+        self._wfile.write(line)
+        self._wfile.flush()
+        #try:
+        #except:
+        #    f=open('/dev/shm/1','wb')
+        #    f.write(line)
+        #    f.close()
+        #    assert line.strip() in b'status',b'stats'
+        #    raise WriteFail
 
     def _write_command(self, command, args=[]):
         parts = [command]
