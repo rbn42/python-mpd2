@@ -72,6 +72,8 @@ logger.addHandler(NullHandler())
 class MPDError(Exception):
     pass
 
+class ReadFail(MPDError):
+    pass
 
 class ConnectionError(MPDError):
     pass
@@ -278,7 +280,7 @@ class MPDClient(object):
             f=open('/dev/shm/1','wb')
             f.write(line)
             f.close()
-            a=1/0
+            assert line.strip() in b'status',b'stats'
 
     def _write_command(self, command, args=[]):
         parts = [command]
@@ -302,7 +304,10 @@ class MPDClient(object):
 
 
     def _read_line(self):
-        line = self._rfile.readline()
+        try:
+            line = self._rfile.readline()
+        except:
+            raise ReadFail('msg')
         #if self.use_unicode:
         if not line.endswith(b"\n"):
             self.disconnect()
