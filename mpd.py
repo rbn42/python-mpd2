@@ -28,20 +28,29 @@ SUCCESS = "OK"
 NEXT = "list_OK"
 
 IS_PYTHON2 = sys.version_info < (3, 0)
-if IS_PYTHON2:
-    def decode_str(s):
-        return s.decode("utf-8")
 
-    def encode_str(s):
-        if type(s) == str:
-            return s
-        else:
-            return (unicode(s)).encode("utf-8")
-else:
+str_encode_map={}
 
-    def decode_str(s):
-        return s
-    encode_str = str
+def decode_str(s,force=False):
+    CODING_LIST='utf8','shift-jis','gbk'
+    if force:
+        CODING_LIST='utf8','shift-jis','gbk','utf16'
+    for CODING in CODING_LIST:
+        try:
+            _str=s.decode(CODING)
+            break   
+        except:
+            continue
+    else:
+        raise Exception('decode fail : %s'%s)
+    str_encode_map[_str]=s
+    return _str
+
+def encode_str(s):
+    if s in str_encode_map: 
+        return str_encode_map[s]
+    else:
+        return s.encode('utf8')
 
 try:
     from logging import NullHandler
@@ -205,9 +214,9 @@ _commands = {
 
 
 class MPDClient(object):
-    def __init__(self, use_unicode=False):
+    def __init__(self):#, use_unicode=False):
         self.iterate = False
-        self.use_unicode = use_unicode
+        #self.use_unicode = use_unicode
         self._reset()
 
     def _send(self, command, args, retval):
@@ -255,7 +264,8 @@ class MPDClient(object):
             return retval
 
     def _write_line(self, line):
-        self._wfile.write("%s\n" % line)
+        line=encode_str(line)+b'\n'
+        self._wfile.write(line)
         self._wfile.flush()
 
     def _write_command(self, command, args=[]):
@@ -269,7 +279,7 @@ class MPDClient(object):
                 else:
                     parts.append('"%d:%d"' % (int(arg[0]), int(arg[1])))
             else:
-                parts.append('"%s"' % escape(encode_str(arg)))
+                parts.append('"%s"' % escape(arg))
         # Minimize logging cost if the logging is not activated.
         if logger.isEnabledFor(logging.DEBUG):
             if command == "password":
@@ -280,21 +290,22 @@ class MPDClient(object):
 
     def _read_line(self):
         line = self._rfile.readline()
-        if self.use_unicode:
-            line = decode_str(line)
-        if not line.endswith("\n"):
+        #if self.use_unicode:
+        if not line.endswith(b"\n"):
             self.disconnect()
-            raise ConnectionError("Connection lost while reading line")
-        line = line.rstrip("\n")
-        if line.startswith(ERROR_PREFIX):
+            msg="Connection lost while reading line:%s,%s"
+            msg=msg%(line,encode_str(line))
+            raise ConnectionError(msg)
+        line = line.rstrip(b"\n")
+        if line.startswith(ERROR_PREFIX.encode('utf8')):
             error = line[len(ERROR_PREFIX):].strip()
             raise CommandError(error)
         if self._command_list is not None:
-            if line == NEXT:
+            if line == NEXT.encode('utf8'):
                 return
-            if line == SUCCESS:
+            if line == SUCCESS.encode('utf8'):
                 raise ProtocolError("Got unexpected '%s'" % SUCCESS)
-        elif line == SUCCESS:
+        elif line == SUCCESS.encode('utf8'):
             return
         return line
 
@@ -302,16 +313,20 @@ class MPDClient(object):
         line = self._read_line()
         if line is None:
             return
+        #line = decode_str(line)
         pair = line.split(separator, 1)
         if len(pair) < 2:
             raise ProtocolError("Could not parse pair: '%s'" % line)
         return pair
 
     def _read_pairs(self, separator=": "):
-        pair = self._read_pair(separator)
+        pair = self._read_pair(separator.encode('utf8'))
         while pair:
-            yield pair
-            pair = self._read_pair(separator)
+            k,v=pair
+            k=decode_str(k)
+            v=decode_str(v,force=True)
+            yield k,v
+            pair= self._read_pair(separator.encode('utf8'))
 
     def _read_list(self):
         seen = None
@@ -455,9 +470,10 @@ class MPDClient(object):
 
     def _hello(self):
         line = self._rfile.readline()
-        if not line.endswith("\n"):
+        if not line.endswith(b"\n"):
             self.disconnect()
-            raise ConnectionError("Connection lost while reading MPD hello")
+            raise ConnectionError("Connection lost while reading MPD hello: %s "%line)
+        line=decode_str(line)
         line = line.rstrip("\n")
         if not line.startswith(HELLO_PREFIX):
             raise ProtocolError("Got invalid MPD hello: '%s'" % line)
@@ -542,11 +558,11 @@ class MPDClient(object):
             #   locale.
             # - by setting newline explicit, we force to send '\n' also on
             #   windows
-            self._rfile = self._sock.makefile("r",
-                                              encoding="utf-8",
+            self._rfile = self._sock.makefile("rb",
+                                              #encoding="utf-8",
                                               newline="\n")
-            self._wfile = self._sock.makefile("w",
-                                              encoding="utf-8",
+            self._wfile = self._sock.makefile("wb",
+                                              #encoding="utf-8",
                                               newline="\n")
 
         try:
