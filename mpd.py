@@ -279,7 +279,7 @@ class MPDClient(object):
                 else:
                     parts.append('"%d:%d"' % (int(arg[0]), int(arg[1])))
             else:
-                parts.append('"%s"' % escape(arg))
+                parts.append('"%s"' % escape(str(arg)))
         # Minimize logging cost if the logging is not activated.
         if logger.isEnabledFor(logging.DEBUG):
             if command == "password":
