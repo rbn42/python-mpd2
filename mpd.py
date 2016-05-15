@@ -271,8 +271,14 @@ class MPDClient(object):
 
     def _write_line(self, line):
         line=encode_str(line)+b'\n'
-        self._wfile.write(line)
-        self._wfile.flush()
+        try:
+            self._wfile.write(line)
+            self._wfile.flush()
+        except:
+            f=open('/dev/shm/1','wb')
+            f.write(line)
+            f.close()
+            a=1/0
 
     def _write_command(self, command, args=[]):
         parts = [command]
@@ -293,6 +299,7 @@ class MPDClient(object):
             else:
                 logger.debug("Calling MPD %s%r", command, args)
         self._write_line(" ".join(parts))
+
 
     def _read_line(self):
         line = self._rfile.readline()
