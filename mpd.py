@@ -32,12 +32,18 @@ IS_PYTHON2 = sys.version_info < (3, 0)
 str_encode_map={}
 
 def decode_str(s,force=False):
-    CODING_LIST='utf8','shift-jis','gbk'
+    ENCODING_LIST=['utf8','shift-jis','big5','gbk']
     if force:
-        CODING_LIST='utf8','shift-jis','gbk','utf16'
-    for CODING in CODING_LIST:
+        ENCODING_LIST=ENCODING_LIST+['utf16',]
+    #import chardet
+    #encoding=chardet.detect(s)
+    #encoding,confidence=encoding['encoding'],encoding['confidence']
+    #if confidence<1 and not force:
+    #    raise Exception('decode fail : %s'%s)
+    #ENCODING_LIST=[encoding]+ENCODING_LIST
+    for encoding in ENCODING_LIST:
         try:
-            _str=s.decode(CODING)
+            _str=s.decode(encoding)
             break   
         except:
             continue
@@ -324,7 +330,13 @@ class MPDClient(object):
         while pair:
             k,v=pair
             k=decode_str(k)
-            v=decode_str(v,force=True)
+            try:
+                v=decode_str(v)
+            except:
+                #f=open('/dev/shm/1','ab')
+                #f.write(v+b'\n')
+                #f.close()
+                v=decode_str(v,force=True)
             yield k,v
             pair= self._read_pair(separator.encode('utf8'))
 
