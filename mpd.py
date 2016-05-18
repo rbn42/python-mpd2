@@ -72,11 +72,6 @@ logger.addHandler(NullHandler())
 class MPDError(Exception):
     pass
 
-class ReadFail(MPDError):
-    pass
-
-class WriteFail(MPDError):
-    pass
 
 class ConnectionError(MPDError):
     pass
@@ -225,9 +220,8 @@ _commands = {
 
 
 class MPDClient(object):
-    def __init__(self):#, use_unicode=False):
+    def __init__(self):
         self.iterate = False
-        #self.use_unicode = use_unicode
         self._reset()
 
     def _send(self, command, args, retval):
@@ -275,16 +269,8 @@ class MPDClient(object):
             return retval
 
     def _write_line(self, line):
-        line=encode_str(line)+b'\n'
-        self._wfile.write(line)
+        self._wfile.write(b"%s\n" % line)
         self._wfile.flush()
-        #try:
-        #except:
-        #    f=open('/dev/shm/1','wb')
-        #    f.write(line)
-        #    f.close()
-        #    assert line.strip() in b'status',b'stats'
-        #    raise WriteFail
 
     def _write_command(self, command, args=[]):
         parts = [command]
@@ -304,20 +290,15 @@ class MPDClient(object):
                 logger.debug("Calling MPD password(******)")
             else:
                 logger.debug("Calling MPD %s%r", command, args)
-        self._write_line(" ".join(parts))
+        cmd=" ".join(parts)
+        self._write_line(cmd.encode('utf8'))
 
 
     def _read_line(self):
-        try:
-            line = self._rfile.readline()
-        except:
-            raise ReadFail('msg')
-        #if self.use_unicode:
+        line = self._rfile.readline()
         if not line.endswith(b"\n"):
             self.disconnect()
-            msg="Connection lost while reading line:%s,%s"
-            msg=msg%(line,encode_str(line))
-            raise ConnectionError(msg)
+            raise ConnectionError("Connection lost while reading line")
         line = line.rstrip(b"\n")
         if line.startswith(ERROR_PREFIX.encode('utf8')):
             error = line[len(ERROR_PREFIX):].strip()
@@ -335,7 +316,6 @@ class MPDClient(object):
         line = self._read_line()
         if line is None:
             return
-        #line = decode_str(line)
         pair = line.split(separator, 1)
         if len(pair) < 2:
             raise ProtocolError("Could not parse pair: '%s'" % line)
@@ -349,9 +329,6 @@ class MPDClient(object):
             try:
                 v=decode_str(v)
             except:
-                #f=open('/dev/shm/1','ab')
-                #f.write(v+b'\n')
-                #f.close()
                 v=decode_str(v,force=True)
             yield k,v
             pair= self._read_pair(separator.encode('utf8'))
@@ -500,7 +477,8 @@ class MPDClient(object):
         line = self._rfile.readline()
         if not line.endswith(b"\n"):
             self.disconnect()
-            raise ConnectionError("Connection lost while reading MPD hello: %s "%line)
+
+            raise ConnectionError("Connection lost while reading MPD hello")
         line=decode_str(line)
         line = line.rstrip("\n")
         if not line.startswith(HELLO_PREFIX):
