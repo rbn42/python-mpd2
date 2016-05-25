@@ -30,32 +30,34 @@ NEXT = "list_OK"
 
 IS_PYTHON2 = sys.version_info < (3, 0)
 
-str_encode_map={}
+str_encode_map = {}
 
-def decode_str(s,force=False):
-    ENCODING_LIST=['utf8',]#'shift-jis','big5','gbk']
+
+def decode_str(s, force=False):
+    ENCODING_LIST = ['utf8', ]  # 'shift-jis','big5','gbk']
     if force:
-        ENCODING_LIST=ENCODING_LIST+['utf16',]
+        ENCODING_LIST = ENCODING_LIST + ['utf16', ]
     #import chardet
-    #encoding=chardet.detect(s)
-    #encoding,confidence=encoding['encoding'],encoding['confidence']
-    #if confidence<1 and not force:
+    # encoding=chardet.detect(s)
+    # encoding,confidence=encoding['encoding'],encoding['confidence']
+    # if confidence<1 and not force:
     #    raise Exception('decode fail : %s'%s)
-    #ENCODING_LIST=[encoding]+ENCODING_LIST
+    # ENCODING_LIST=[encoding]+ENCODING_LIST
     for encoding in ENCODING_LIST:
         try:
-            _str=s.decode(encoding)
-            break   
+            _str = s.decode(encoding)
+            break
         except:
             continue
     else:
-        _str='None'
+        _str = 'None'
         #raise Exception('decode fail : %s'%s)
-    str_encode_map[_str]=s
+    str_encode_map[_str] = s
     return _str
 
+
 def encode_str(s):
-    if s in str_encode_map: 
+    if s in str_encode_map:
         return str_encode_map[s]
     else:
         return s.encode('utf8')
@@ -64,6 +66,7 @@ try:
     from logging import NullHandler
 except ImportError:  # NullHandler was introduced in python2.7
     class NullHandler(logging.Handler):
+
         def emit(self, record):
             pass
 
@@ -100,6 +103,7 @@ class IteratingError(MPDError):
 
 
 class _NotConnected(object):
+
     def __getattr__(self, attr):
         return self._dummy
 
@@ -222,6 +226,7 @@ _commands = {
 
 
 class MPDClient(object):
+
     def __init__(self):
         self.iterate = False
         self._reset()
@@ -235,7 +240,7 @@ class MPDClient(object):
             self._pending.append(command)
 
     def _fetch(self, command, args, retval):
-        result=None
+        result = None
         if self._command_list is not None:
             raise CommandListError("Cannot use fetch_%s in a command list" %
                                    command)
@@ -248,12 +253,13 @@ class MPDClient(object):
             raise PendingCommandError("'%s' is not the currently "
                                       "pending command" % command)
         del self._pending[0]
-        result=retval
+        result = retval
         if isinstance(retval, Callable):
-            result=retval()
+            result = retval()
         return result
 
-    locker_q=Queue(1)
+    locker_q = Queue(1)
+
     def _execute(self, command, args, retval):
         if self._iterating:
             raise IteratingError("Cannot execute '%s' while iterating" %
@@ -262,7 +268,7 @@ class MPDClient(object):
             raise PendingCommandError("Cannot execute '%s' with "
                                       "pending commands" % command)
     #    self.locker_q.put(1)
-        result=None
+        result = None
         if self._command_list is not None:
             if not isinstance(retval, Callable):
                 raise CommandListError("'%s' not allowed in command list" %
@@ -273,7 +279,7 @@ class MPDClient(object):
             self._write_command(command, args)
             if isinstance(retval, Callable):
                # try:
-                    result=retval()
+                result = retval()
                # except Exception as e:
                #     s=str(e)
                #     f=open('/dev/shm/11','a')
@@ -281,7 +287,7 @@ class MPDClient(object):
                #     f.flush()
                #     f.close()
             else:
-                result =retval
+                result = retval
     #    self.locker_q.get()
         return result
 
@@ -307,9 +313,8 @@ class MPDClient(object):
                 logger.debug("Calling MPD password(******)")
             else:
                 logger.debug("Calling MPD %s%r", command, args)
-        cmd=" ".join(parts)
+        cmd = " ".join(parts)
         self._write_line(cmd.encode('utf8'))
-
 
     def _read_line(self):
         line = self._rfile.readline()
@@ -341,14 +346,14 @@ class MPDClient(object):
     def _read_pairs(self, separator=": "):
         pair = self._read_pair(separator.encode('utf8'))
         while pair:
-            k,v=pair
-            k=decode_str(k)
+            k, v = pair
+            k = decode_str(k)
             try:
-                v=decode_str(v)
+                v = decode_str(v)
             except:
-                v=decode_str(v,force=True)
-            yield k,v
-            pair= self._read_pair(separator.encode('utf8'))
+                v = decode_str(v, force=True)
+            yield k, v
+            pair = self._read_pair(separator.encode('utf8'))
 
     def _read_list(self):
         seen = None
@@ -496,7 +501,7 @@ class MPDClient(object):
             self.disconnect()
 
             raise ConnectionError("Connection lost while reading MPD hello")
-        line=decode_str(line)
+        line = decode_str(line)
         line = line.rstrip("\n")
         if not line.startswith(HELLO_PREFIX):
             raise ProtocolError("Got invalid MPD hello: '%s'" % line)
@@ -582,10 +587,10 @@ class MPDClient(object):
             # - by setting newline explicit, we force to send '\n' also on
             #   windows
             self._rfile = self._sock.makefile("rb",
-                                              #encoding="utf-8",
+                                              # encoding="utf-8",
                                               newline="\n")
             self._wfile = self._sock.makefile("wb",
-                                              #encoding="utf-8",
+                                              # encoding="utf-8",
                                               newline="\n")
 
         try:
@@ -640,57 +645,88 @@ class MPDClient(object):
         # normal, with "send_"-prefix and with "fetch_"-prefix
         escaped_name = name.replace(" ", "_")
         setattr(cls, escaped_name, method)
-        setattr(cls, "send_"+escaped_name, send_method)
-        setattr(cls, "fetch_"+escaped_name, fetch_method)
+        setattr(cls, "send_" + escaped_name, send_method)
+        setattr(cls, "fetch_" + escaped_name, fetch_method)
 
-    def status(self,*args ):
-        self._execute('status',args,None)
+    def status(self, *args):
+        self._execute('status', args, None)
         return self._fetch_object()
-    def stats(self,*args ):
-        self._execute('stats',args,None)
+
+    def stats(self, *args):
+        self._execute('stats', args, None)
         return self._fetch_object()
-    def currentsong(self,*args ):
-        self._execute('currentsong',args,None)
+
+    def currentsong(self, *args):
+        self._execute('currentsong', args, None)
         return self._fetch_object()
-    def lsinfo(self,*args ):
-        self._execute('lsinfo',args,None)
+
+    def lsinfo(self, *args):
+        self._execute('lsinfo', args, None)
         return self._fetch_database()
-    def listallinfo(self,*args ):
-        self._execute('listallinfo',args,None)
+
+    def listallinfo(self, *args):
+        self._execute('listallinfo', args, None)
         return self._fetch_database()
-    def playlistinfo(self,*args ):
-        self._execute('playlistinfo',args,None)
+
+    def playlistinfo(self, *args):
+        self._execute('playlistinfo', args, None)
         return self._fetch_songs()
-    def outputs(self,*args ):
-        self._execute('outputs',args,None)
+
+    def find(self, *args):
+        self._execute('find', args, None)
+        return self._fetch_songs()
+
+    def playlistfind(self, *args):
+        self._execute('playlistfind', args, None)
+        return self._fetch_songs()
+
+    def update(self, *args):
+        self._execute('update', args, None)
+        return self._fetch_item()
+
+    def outputs(self, *args):
+        self._execute('outputs', args, None)
         return self._fetch_outputs()
-    def send_idle(self,*args ):
-        self._send('idle',args,None)
+
+    def send_idle(self, *args):
+        self._send('idle', args, None)
         self._pending.append('idle')
-    def fetch_idle(self,*args ):
-        self._fetch('idle',args,None)
+
+    def fetch_idle(self, *args):
+        self._fetch('idle', args, None)
         return self._fetch_idle()
-    def listplaylist(self,*args ):
-        self._execute('listplaylist',args,None)
+
+    def listplaylist(self, *args):
+        self._execute('listplaylist', args, None)
         return self._fetch_list()
-    def clear(self,*args ):
-        self._execute('clear',args,None)
+
+    def clear(self, *args):
+        self._execute('clear', args, None)
         return self._fetch_nothing()
-    def add(self,*args ):
-        self._execute('add',args,None)
+
+    def add(self, *args):
+        self._execute('add', args, None)
         return self._fetch_nothing()
-    def load(self,*args ):
-        self._execute('load',args,None)
+
+    def load(self, *args):
+        self._execute('load', args, None)
         return self._fetch_nothing()
-    def next(self,*args ):
-        self._execute('next',args,None)
+
+    def next(self, *args):
+        self._execute('next', args, None)
         return self._fetch_nothing()
-    def play(self,*args ):
-        self._execute('play',args,None)
+
+    def play(self, *args):
+        self._execute('play', args, None)
         return self._fetch_nothing()
-    def playid(self,*args ):
-        self._execute('playid',args,None)
+
+    def playid(self, *args):
+        self._execute('playid', args, None)
         return self._fetch_nothing()
+
+    def close(self, *args):
+        self._execute('close', args, None)
+
     @classmethod
     def remove_command(cls, name):
         if not hasattr(cls, name):
@@ -716,7 +752,7 @@ def newFunction(wrapper, name, returnValue):
         return wrapper(self, name, args, bound_decorator(self, returnValue))
     return decorator
 
-#for key, value in _commands.items():
+# for key, value in _commands.items():
 #    returnValue = None if value is None else MPDClient.__dict__[value]
 #    MPDClient.add_command(key, returnValue)
 
