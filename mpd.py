@@ -635,18 +635,18 @@ class MPDClient(object):
         self._write_command("command_list_end")
         return self._fetch_command_list()
 
-    @classmethod
-    def add_command(cls, name, callback):
-        method = newFunction(cls._execute, name, callback)
-        send_method = newFunction(cls._send, name, callback)
-        fetch_method = newFunction(cls._fetch, name, callback)
-
-        # create new mpd commands as function in three flavors:
-        # normal, with "send_"-prefix and with "fetch_"-prefix
-        escaped_name = name.replace(" ", "_")
-        setattr(cls, escaped_name, method)
-        setattr(cls, "send_" + escaped_name, send_method)
-        setattr(cls, "fetch_" + escaped_name, fetch_method)
+#    @classmethod
+#    def add_command(cls, name, callback):
+#        method = newFunction(cls._execute, name, callback)
+#        send_method = newFunction(cls._send, name, callback)
+#        fetch_method = newFunction(cls._fetch, name, callback)
+#
+#        # create new mpd commands as function in three flavors:
+#        # normal, with "send_"-prefix and with "fetch_"-prefix
+#        escaped_name = name.replace(" ", "_")
+#        setattr(cls, escaped_name, method)
+#        setattr(cls, "send_" + escaped_name, send_method)
+#        setattr(cls, "fetch_" + escaped_name, fetch_method)
 
     def status(self, *args):
         self._execute('status', args, None)
@@ -741,20 +741,20 @@ class MPDClient(object):
         delattr(cls, str("fetch_" + name))
 
 
-def bound_decorator(self, function):
-    """ bind decorator to self """
-    if not isinstance(function, Callable):
-        return None
-
-    def decorator(*args, **kwargs):
-        return function(self, *args, **kwargs)
-    return decorator
-
-
-def newFunction(wrapper, name, returnValue):
-    def decorator(self, *args):
-        return wrapper(self, name, args, bound_decorator(self, returnValue))
-    return decorator
+# def bound_decorator(self, function):
+#    """ bind decorator to self """
+#    if not isinstance(function, Callable):
+#        return None
+#
+#    def decorator(*args, **kwargs):
+#        return function(self, *args, **kwargs)
+#    return decorator
+#
+#
+# def newFunction(wrapper, name, returnValue):
+#    def decorator(self, *args):
+#        return wrapper(self, name, args, bound_decorator(self, returnValue))
+#    return decorator
 
 # for key, value in _commands.items():
 #    returnValue = None if value is None else MPDClient.__dict__[value]
