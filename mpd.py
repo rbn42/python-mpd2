@@ -704,6 +704,10 @@ class MPDClient(object):
         self._execute('clear', args, None)
         return self._fetch_nothing()
 
+    def deleteid(self, *args):
+        self._execute('deleteid', args, None)
+        return self._fetch_nothing()
+
     def add(self, *args):
         self._execute('add', args, None)
         return self._fetch_nothing()
