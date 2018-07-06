@@ -48,7 +48,8 @@ def decode_str(s,force=False):
         except:
             continue
     else:
-        raise Exception('decode fail : %s'%s)
+        _str=s.decode(errors='ignore')
+        #raise Exception('decode fail : %s'%s)
     str_encode_map[_str]=s
     return _str
 
